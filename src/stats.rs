@@ -1,3 +1,6 @@
+//! Collects and prints construction diagnostics grouped by bucket progress or
+//! bucket size, including bucket counts, pilot values, and eviction totals.
+
 use crate::Pilot;
 
 #[derive(Default, Clone, Debug)]

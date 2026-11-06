@@ -1,3 +1,7 @@
+//! Defines sharding modes and the iterators that feed key hashes to
+//! construction. Depending on configuration, hashes are kept together in
+//! memory, regenerated shard-by-shard, or temporarily written to disk.
+
 use std::{
     fs::File,
     io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write},

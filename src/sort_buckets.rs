@@ -1,3 +1,6 @@
+//! Sorts hashes into parts, detects duplicate hashes, computes part boundaries,
+//! and orders each part's buckets from largest to smallest for construction.
+
 use super::*;
 use crate::bucket_idx::BucketIdx;
 use rdst::RadixSort;

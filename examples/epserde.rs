@@ -1,3 +1,8 @@
+//! Demonstrates serializing a PtrHash and loading it back in several ways:
+//! full deserialization, epserde-owned memory, memory mapping, and
+//! deserialization from a byte buffer. It then checks lookup, streaming
+//! indices, and uniqueness of the mapped indices.
+
 use epserde::prelude::*;
 use ptr_hash::{PtrHash, PtrHashParams};
 

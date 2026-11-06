@@ -1,3 +1,6 @@
+//! Provides a compact bucket-index type with a sentinel for an empty slot and
+//! indexing helpers for bucket-indexed slices and vectors.
+
 use std::ops::{Add, Index, IndexMut, Sub};
 
 // Ord so we can sort them.

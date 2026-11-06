@@ -1,3 +1,7 @@
+//! Implements fast-modulo reducers used by the indexing path, including
+//! 64-bit reduction and a 32-bit variant for slot selection, with tests
+//! against modulo behavior.
+
 use mem_dbg::MemSize;
 
 use crate::reduce::Reduce;

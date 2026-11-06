@@ -1,4 +1,8 @@
-//! Benchmark of constructing and querying a 10^9 table.
+//! Benchmarks construction and query performance on 10^9 integer keys.
+//! It compares fast, default, and compact variants, reporting build time,
+//! bits per key, scalar lookup time, streaming lookup time, and batched lookup
+//! time.
+
 use ptr_hash::{
     PtrHash, PtrHashParams,
     hash::{FastIntHash, KeyHasher},

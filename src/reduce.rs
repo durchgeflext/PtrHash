@@ -1,3 +1,6 @@
+//! Defines fast reduction strategies for mapping hash values into bounded
+//! integer ranges, used to select shards, parts, buckets, and slots.
+
 use mem_dbg::MemSize;
 
 use crate::{

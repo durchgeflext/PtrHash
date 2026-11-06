@@ -1,4 +1,7 @@
-//! Benchmark query throughput of the default configurations.
+//! Benchmarks query throughput for the fast, default, and compact PtrHash
+//! configurations at several input sizes. It compares identity hashing on
+//! random integer keys with the library's fast integer hasher.
+
 use ptr_hash::{
     CompactPtrHash, DefaultPtrHash, FastPtrHash, PtrHashParams,
     hash::{FastIntHash, NoHash},

@@ -1,3 +1,8 @@
+//! Integration-style unit tests for building and querying PtrHash with
+//! random, regular, integer, and string keys, as well as streaming, sharding,
+//! cloning, and optional serialization behavior. Some very large tests are
+//! ignored by default.
+
 use std::hint::black_box;
 
 use super::*;

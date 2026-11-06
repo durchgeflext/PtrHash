@@ -1,3 +1,7 @@
+//! Places each bucket's keys into slots by searching pilot values. It first
+//! tries collision-free pilots, then resolves conflicts by evicting and
+//! re-placing other buckets; this is the central per-part construction step.
+
 use super::*;
 use crate::{bucket_idx::BucketIdx, stats::BucketStats};
 use bitvec::{slice::BitSlice, vec::BitVec};

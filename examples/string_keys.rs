@@ -1,3 +1,8 @@
+//! Builds a large perfect hash function for byte-slice keys using a custom
+//! configuration: linear buckets, Elias-Fano remapping, Gx hashing, and
+//! disk-backed sharding. It demonstrates the parallel-iterator API for string
+//! keys and performs a sample lookup.
+
 use ptr_hash::{PtrHash, PtrHashParams, Sharding, bucket_fn::Linear, hash::Gx, pack::EliasFano};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
