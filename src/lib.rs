@@ -1120,6 +1120,19 @@ impl<
         })
     }
 
+    /// Query a batch of `K` keys at once using SIMD.
+    ///
+    /// Input can be either `[Key; K]` or `[&Key; K]`.
+    /*
+    #[inline]
+    pub fn index_batch_simd<'a, const K: usize, const QUERY_REMAP: bool>(
+        &'a self,
+        xs: impl IntoIterator<Item = &'a Key, IntoIter: ExactSizeIterator> + 'a,
+    ) -> impl Iterator<Item = usize> + 'a {
+
+    }
+    */
+
     fn hash_key(&self, x: &Key) -> Hx::H {
         Hx::hash(x, self.seed)
     }

@@ -31,11 +31,11 @@ fn main() {
     // sharding(Sharding::Hybrid(1 << 37), "data/sharding_hybrid.json"); // 40min
     // sharding(Sharding::Memory, "data/sharding_memory.json"); // 50min
 
-    // query_batching(); // 40min
+    query_batching(); // 40min
 
     // query_throughput(); // 22min
 
-    string_queries(); // 30min
+    // string_queries(); // 30min
 
     // construction_memory(); // fast
 }
@@ -539,7 +539,7 @@ fn query_batching() {
     }
 
     let mut results = vec![];
-    for n in [SMALL_N, LARGE_N] {
+    for n in [SMALL_N] {
         let keys = &generate_keys(n);
 
         test(keys, PARAMS_FAST, &mut results);
