@@ -24,9 +24,10 @@ fn main() {
     let mphf = PtrHashXxh3::new(&keys, PtrHashParams::default());
     eprintln!("construction took: {:?}", start.elapsed());
 
-    let path = "/tmp/test.mphf";
-    let mut file = std::fs::File::create(path).unwrap();
-    eprintln!("\nSerializing to {path}..");
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("test.mphf");
+    let mut file = std::fs::File::create(&path).unwrap();
+    eprintln!("\nSerializing to {}..", path.display());
     unsafe { mphf.serialize(&mut file).unwrap() };
     let len = file.metadata().unwrap().len();
     eprintln!("Size: {len}, bits/key: {}\n", len as f32 * 8. / n as f32);
@@ -34,22 +35,22 @@ fn main() {
     // Deserialize full PtrHash
     eprintln!("load full, without epserde..");
     let _mphf2 =
-        unsafe { PtrHashXxh3::deserialize_full(&mut std::fs::File::open(path).unwrap()).unwrap() };
+        unsafe { PtrHashXxh3::deserialize_full(&mut std::fs::File::open(&path).unwrap()).unwrap() };
 
     // Ep-serde from memory.
     eprintln!("Load into memory, with epserde..");
-    let _mphf2 = unsafe { PtrHashXxh3::load_mem(path).unwrap() }.uncase();
+    let _mphf2 = unsafe { PtrHashXxh3::load_mem(&path).unwrap() }.uncase();
 
     // Ep-serde from mmap.
     eprintln!("Load into mmap, with epserde..");
     let mem_case = unsafe {
-        PtrHashXxh3::load_mmap(path, Flags::RANDOM_ACCESS | Flags::TRANSPARENT_HUGE_PAGES).unwrap()
+        PtrHashXxh3::load_mmap(&path, Flags::RANDOM_ACCESS | Flags::TRANSPARENT_HUGE_PAGES).unwrap()
     };
     let mphf2 = mem_case.uncase();
 
     // Ep-serde from manually read memory.
     // May fail because we require 64-byte alignment, and `fs::read` is not guaranteed to give that.
-    let b = std::fs::read(path).unwrap();
+    let b = std::fs::read(&path).unwrap();
     let _mphf2 = unsafe { PtrHashXxh3::deserialize_eps(b.as_ref()).unwrap() };
 
     eprintln!("Testing..");
@@ -76,6 +77,4 @@ fn main() {
         assert!(!taken[idx]);
         taken[idx] = true;
     }
-
-    eprintln!("\n\nDO NOT FORGET TO CLEAN UP {path} !!!\n\n");
 }
