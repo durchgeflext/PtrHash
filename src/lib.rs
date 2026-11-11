@@ -1142,7 +1142,7 @@ impl<
         })
     }
 
-    /// Query a batch of `K` keys at once using SIMD.
+    /// Placeholder until SIMD querying is implemented.
     ///
     /// Input can be either `[Key; K]` or `[&Key; K]`.
     #[doc(hidden)]
@@ -1151,7 +1151,8 @@ impl<
         &'a self,
         xs: impl IntoIterator<Item = &'a Key, IntoIter: ExactSizeIterator<Item = &'a Key>> + 'a,
     ) -> impl Iterator<Item = usize> + 'a {
-        
+        //TODO: Implement function
+        xs.into_iter().map(|_| 0)
     }
 
     fn hash_key(&self, x: &Key) -> Hx::H {
