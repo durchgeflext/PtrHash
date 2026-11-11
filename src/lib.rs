@@ -1079,42 +1079,64 @@ impl<
     #[doc(hidden)]
     #[inline]
     pub fn index_batch_exact2<'a, const K: usize, const QUERY_REMAP: bool>(
+        // Borrows the hash structure for the lifetime of the returned iterator.
         &'a self,
+        // Input keys, with an exact-size iterator.
         xs: impl IntoIterator<Item = &'a Key, IntoIter: ExactSizeIterator<Item = &'a Key>> + 'a,
+    // Returns an iterator of computed indices.
     ) -> impl Iterator<Item = usize> + 'a {
+        // Mutable batch-sized array of bucket numbers, initialized to zero.
         let mut buckets: [usize; K] = [0; K];
+        // Mutable batch-sized array of hashes, initialized to default hashes.
         let mut hs: [Hx::H; K] = [Hx::H::default(); K];
 
+        // Start building the iterator of hashes from the input keys.
         let mut xs = xs
+            // Convert the input into its iterator.
             .into_iter()
+            // Hash each key as it is pulled from the iterator.
             .map(|x| self.hash_key(x))
+            // Append K default hashes to drain the buffered hashes at the end.
             .chain([Default::default(); K]);
+        // Fill all K positions in the initial hash buffer.
         for i in 0..K {
+            // Store the next hash; the appended defaults ensure one is available.
             hs[i] = xs.next().unwrap();
         }
+        // Mark the buffer as ready for the first batch's bucket prefetch.
         let mut idx = K;
+        // For each remaining hash, compute and yield one index.
         xs.map(move |hx| {
+            // Start a new batch when every buffered position has been queried.
             if idx == K {
+                // Begin querying this batch at its first position.
                 idx = 0;
-                // Prefetch.
+                // Visit each buffered hash to prepare its bucket.
                 for idx in 0..K {
+                    // Compute and store the hash's bucket number.
                     buckets[idx] = self.bucket(hs[idx]);
+                    // Hint that the bucket's pilot data will be needed soon.
                     prefetch_index::prefetch_index(self.pilots.as_ref(), buckets[idx]);
                 }
             }
 
-            // Query.
+            // Read the pilot value for the current hash's bucket.
             let pilot = self.pilots.as_ref().index(buckets[idx]);
+            // Compute the non-remapped slot from the hash and pilot.
             let slot = self.slot(hs[idx], pilot);
 
-            // Update hash in current pos and increment.
+            // Put the next hash into the position just queried.
             hs[idx] = hx;
+            // Advance the buffer cursor.
             idx += 1;
 
-            // Remap?
+            // Remap only when requested and the slot lies beyond the first n slots.
             if QUERY_REMAP && slot >= self.n {
+                // Return the compact index corresponding to this overflow slot.
                 self.remap.index(slot - self.n) as usize
+            // Keep the original slot when remapping is disabled or unnecessary.
             } else {
+                // Return the slot unchanged.
                 slot
             }
         })
