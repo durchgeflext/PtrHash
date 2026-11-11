@@ -448,6 +448,7 @@ fn query_batching() {
             ..Default::default()
         };
 
+        /*
         let q_phf = time_query_f(keys, || {
             let mut sum = 0;
             for key in keys {
@@ -455,7 +456,8 @@ fn query_batching() {
             }
             sum
         });
-
+        */
+        let q_phf : f64 = 0.0;
         let r = QueryResult {
             batch_size: 0,
             mode: "loop".to_string(),
@@ -465,6 +467,7 @@ fn query_batching() {
         eprintln!("Result: {r:?}");
         rs.push(r.clone());
 
+        /*
         let q_phf = time_query_f(keys, || {
             let mut sum = 0;
             for key in keys {
@@ -473,6 +476,7 @@ fn query_batching() {
             }
             sum
         });
+        */
 
         let r = QueryResult {
             batch_size: 0,
@@ -489,17 +493,17 @@ fn query_batching() {
             r: &QueryResult,
             rs: &mut Vec<QueryResult>,
         ) {
-            let stream = time_query(keys, || ph.index_stream_maybe_remap::<A, false, _>(keys));
+            //let stream = time_query(keys, || ph.index_stream_maybe_remap::<A, false, _>(keys));
             // Somehow, index_batch has very weird scaling behaviour in A.
             // index_batch2 *does* improve as A increases, and so we use that one instead.
             // let batch = time_query(keys, || ph.index_batch_exact::<A, false>(keys));
             let batch2 = time_query(keys, || ph.index_batch_exact2::<A, false>(keys));
-            rs.push(QueryResult {
+            /*rs.push(QueryResult {
                 batch_size: A,
                 mode: "stream".to_string(),
                 q_phf: stream,
                 ..r.clone()
-            });
+            });*/
             eprintln!("Result: {:?}", rs.last().unwrap());
             // rs.push(QueryResult {
             //     batch_size: A,
@@ -516,7 +520,7 @@ fn query_batching() {
             });
             eprintln!("Result: {:?}", rs.last().unwrap());
         }
-        batch::<1, _>(&ph, keys, &r, rs);
+//        batch::<1, _>(&ph, keys, &r, rs);
         batch::<2, _>(&ph, keys, &r, rs);
         batch::<3, _>(&ph, keys, &r, rs);
         batch::<4, _>(&ph, keys, &r, rs);
