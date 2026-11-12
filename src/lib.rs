@@ -1142,19 +1142,6 @@ impl<
         })
     }
 
-    /// Placeholder until SIMD querying is implemented.
-    ///
-    /// Input can be either `[Key; K]` or `[&Key; K]`.
-    #[doc(hidden)]
-    #[inline]
-    pub fn index_batch_simd<'a, const K: usize, const QUERY_REMAP: bool>(
-        &'a self,
-        xs: impl IntoIterator<Item = &'a Key, IntoIter: ExactSizeIterator<Item = &'a Key>> + 'a,
-    ) -> impl Iterator<Item = usize> + 'a {
-        //TODO: Implement function
-        xs.into_iter().map(|_| 0)
-    }
-
     fn hash_key(&self, x: &Key) -> Hx::H {
         Hx::hash(x, self.seed)
     }
