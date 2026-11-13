@@ -1142,6 +1142,19 @@ impl<
         })
     }
 
+    pub fn index_simd<'a, const LANES: usize>(
+        &'a self,
+        xs: impl IntoIterator<
+            Item = &'a Key,
+            IntoIter: ExactSizeIterator<Item = &'a Key>,
+        > + 'a,
+    ) -> impl Iterator<Item = usize> + 'a
+    where
+        Key: Sized,
+    {
+        //TODO: Implement SIMD hashing
+    }
+
     fn hash_key(&self, x: &Key) -> Hx::H {
         Hx::hash(x, self.seed)
     }
