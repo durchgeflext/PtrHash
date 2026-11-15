@@ -754,6 +754,10 @@ impl<
     }
 }
 
+//FIXME: This should be somewhere sensible
+trait Lane64 {}
+impl Lane64 for u64 {}
+
 /// Indexing methods.
 impl<
     Key: KeyT + ?Sized,
@@ -1142,17 +1146,27 @@ impl<
         })
     }
 
-    pub fn index_simd<'a, const LANES: usize>(
+    pub fn index_simd64<'a>(
         &'a self,
         xs: impl IntoIterator<
-            Item = &'a Key,
+            Item = u64,
             IntoIter: ExactSizeIterator<Item = &'a Key>,
         > + 'a,
     ) -> impl Iterator<Item = usize> + 'a
-    where
-        Key: Sized,
     {
         //TODO: Implement SIMD hashing
+
+    }
+
+    pub fn index_simd32<'a>(
+        &'a self,
+        xs: impl IntoIterator<
+            Item = u32,
+            IntoIter: ExactSizeIterator<Item = &'a Key>,
+        > + 'a,
+    ) -> impl Iterator<Item = usize> + 'a
+    {
+        //TODO implement
     }
 
     fn hash_key(&self, x: &Key) -> Hx::H {
