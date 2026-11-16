@@ -176,6 +176,7 @@ use bucket_fn::BucketFn;
 use bucket_fn::CubicEps;
 use bucket_fn::Linear;
 use bucket_fn::SquareEps;
+use core::arch::x86_64::*;
 use itertools::Itertools;
 use itertools::izip;
 use log::debug;
@@ -1146,27 +1147,39 @@ impl<
         })
     }
 
-    pub fn index_simd64<'a>(
+
+    #[target_feature(enable = "avx2")]
+    pub unsafe fn index_simd64<'a>(
         &'a self,
         xs: impl IntoIterator<
-            Item = u64,
-            IntoIter: ExactSizeIterator<Item = &'a Key>,
+            Item = & 'a u64,
+            IntoIter: ExactSizeIterator<Item = &'a u64>,
         > + 'a,
     ) -> impl Iterator<Item = usize> + 'a
     {
-        //TODO: Implement SIMD hashing
-
+        const LANES : usize = 4; //256 / 64
+        let lane : __m256i;
+        // Fill simdlane with keys (either restrict to contiguous memory or copy keys twice)
+        // Hash lane (assume it works)
+        // create iterator
+        // inside the iterator, check if the end of a lane has been reached
+        // YES: replace the simdlane with next set of keys, hash them
+        // NO: consume one item from the lane
+        xs.into_iter().map(|_| 0)
     }
 
-    pub fn index_simd32<'a>(
+    #[target_feature(enable = "avx2")]
+    pub unsafe fn index_simd32<'a>(
         &'a self,
         xs: impl IntoIterator<
             Item = u32,
-            IntoIter: ExactSizeIterator<Item = &'a Key>,
+            IntoIter: ExactSizeIterator<Item = &'a u64>,
         > + 'a,
     ) -> impl Iterator<Item = usize> + 'a
     {
+        const LANES : usize = 8; //256 / 32
         //TODO implement
+        xs.into_iter().map(|_| 0)
     }
 
     fn hash_key(&self, x: &Key) -> Hx::H {
