@@ -1158,7 +1158,30 @@ impl<
     ) -> impl Iterator<Item = usize> + 'a
     {
         const LANES : usize = 4; //256 / 64
-        let lane : __m256i;
+        #[target_feature(enable = "avx2")]
+        unsafe fn simd64_mul(a: __m256i , b : __m256i) -> (__m256i, __m256i) {
+            let mask = _mm256_set1_epi64x(0xffffffff);
+
+            let a32_lo = _mm256_and_si256(a, mask);
+            let a32_hi = _mm256_srli_epi64::<32>(a);
+            let b32_lo = _mm256_and_si256(b, mask);
+            let b32_hi = _mm256_srli_epi64::<32>(b);
+
+            //TODO: Continue function
+        }
+        #[target_feature(enable = "avx2")]
+        unsafe fn simd_stronger_int_hash(a : &[u64], seed : u64) {
+            //C = 0x517cc1b727220a95
+            let c : __m256i = _mm256_set1_epi64x(0x517cc1b727220a95i64);
+            let seed_lane : __m256i = _mm256_set1_epi64x(seed as i64);
+            let mut lane : __m256i = _mm256_loadu_si256(a.as_ptr() as *const __m256i);
+            lane = _mm256_xor_si256(lane, seed_lane);
+            //FIXME: Multiplication
+            let (hi, lo) = simd64_mul(lane, c);
+            //FIXME: wrapping mul
+            lane = _mm256_xor_si256(lo, hi);
+        }
+
         // Fill simdlane with keys (either restrict to contiguous memory or copy keys twice)
         // Hash lane (assume it works)
         // create iterator
