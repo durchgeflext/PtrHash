@@ -1168,6 +1168,7 @@ impl<
             let b32_hi = _mm256_srli_epi64::<32>(b);
 
             //TODO: Continue function
+            // "Just don't do that"
         }
         #[target_feature(enable = "avx2")]
         unsafe fn simd_stronger_int_hash(a : &[u64], seed : u64) {
