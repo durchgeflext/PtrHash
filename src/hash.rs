@@ -28,6 +28,8 @@
 //! call specialized functions rather than going through the generic `Hasher`
 //! interface.
 //!
+
+use std::arch::x86_64::*;
 #[cfg(feature = "gxhash")]
 use gxhash::GxBuildHasher;
 
@@ -210,3 +212,125 @@ macro_rules! int_hashers {
     };
 }
 int_hashers!(u8, u16, u32, u64, usize, i8, i16, i32, i64, isize);
+
+#[inline]
+pub fn rotl32(word : u32, shift: u32) -> u32 {
+    (word << shift) | (word >> (32 - shift))
+}
+
+#[inline]
+pub fn rotr32(word : u32, shift: u32) -> u32 {
+    (word >> shift) | (word << (32 - shift))
+}
+
+//https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
+#[inline]
+pub fn murmur_32(a : u32, seed : u32) -> u32 {
+    const C1 : u32= 0xcc9e2d51;
+    const C2 : u32 = 0x1b873593;
+    const C3 : u32 = 0xe6546b64;
+    const C4 : u32 = 0x85ebca6b;
+    const C5 : u32 = 0xc2b2ae35;
+    let mut h1 : u32 = seed;
+
+    let mut k1 = a;
+    k1 *= C1;
+    k1 = rotl32(k1, 15);
+    k1 *= C2;
+
+    h1 ^= k1;
+    h1 = rotl32(h1, 13);
+    h1 = h1 * 5 + C3;
+
+    //finalization, fmix32
+    h1 ^= h1 >> 16;
+    h1 *= C4;
+    h1 ^= h1 >> 13;
+    h1 *= C5;
+    h1 ^= h1 >> 16;
+
+    h1
+}
+#[inline]
+#[target_feature(enable = "avx2")]
+pub unsafe fn simd_murmur_32(a : &[u32; 8], seed: u32) -> [u32; 8] { unsafe {
+    let c1 : __m256i = _mm256_set1_epi32(0xcc9e2d51u32.cast_signed());
+    let c2 : __m256i = _mm256_set1_epi32(0x1b873593);
+    let c3 : __m256i = _mm256_set1_epi32(0xe6546b64u32.cast_signed());
+    let c4 : __m256i = _mm256_set1_epi32(0x85ebca6bu32.cast_signed());
+    let c5 : __m256i = _mm256_set1_epi32(0xc2b2ae35u32.cast_signed());
+    let five : __m256i = _mm256_set1_epi32(5);
+
+    let mut k1 : __m256i = _mm256_loadu_si256(a.as_ptr() as *const __m256i);
+    let mut h1 : __m256i = _mm256_set1_epi32(seed.cast_signed());
+
+    //TODO: Check if multiplication breaks because of the signed integers inside __m256i
+    k1 = _mm256_mullo_epi32(k1, c1);
+    k1 = _mm256_or_si256(_mm256_slli_epi32::<15>(k1), _mm256_srli_epi32::<{ 32 - 15 }>(k1));
+    k1 = _mm256_mullo_epi32(k1, c2);
+
+    h1 = _mm256_xor_si256(h1, k1);
+    h1 = _mm256_or_si256(_mm256_slli_epi32::<13>(h1), _mm256_srli_epi32::<{ 32 - 13 }>(h1));
+    h1 = _mm256_mullo_epi32(h1, five);
+    h1 = _mm256_add_epi32(h1, c3);
+    //finalization
+    h1 = _mm256_xor_si256(h1, _mm256_srli_epi32::<16>(h1));
+    h1 = _mm256_mullo_epi32(h1, c4);
+    h1 = _mm256_xor_si256(h1, _mm256_srli_epi32::<13>(h1));
+    h1 = _mm256_mullo_epi32(h1, c5);
+    h1 = _mm256_xor_si256(h1, _mm256_srli_epi32::<16>(h1));
+
+    std::mem::transmute(h1)
+}}
+
+//https://github.com/Cyan4973/xxHash/blob/dev/lib/xxh32_impl.h
+#[inline]
+pub fn xxhash_32(a : u32, seed : u32) -> u32 {
+    const XXH_2 : u32 = 0x85EBCA77u32;
+    const XXH_3 : u32 = 0xC2B2AE3Du32;
+    const XXH_4 : u32 = 0x27D4EB2Fu32;
+    const XXH_5 : u32 = 0x165667B1u32;
+
+    let mut h32 : u32 = seed + XXH_5;
+    //finalize (h32, input : *char, 4, XXH_aligned)
+
+    //Process4 ONCE
+    h32 += a * XXH_3;
+    h32 = rotl32(h32, 17) * XXH_4;
+    //XXH32_avalanche (h32)
+    h32 ^= h32 >> 15;
+    h32 *= XXH_2;
+    h32 ^= h32 >> 13;
+    h32 *= XXH_3;
+
+    h32 ^ (h32 >> 16)
+}
+
+#[inline]
+#[target_feature(enable = "avx2")]
+pub unsafe fn simd_xxhash_32(a : &[u32; 8], seed : u32) -> [u32; 8] { unsafe {
+
+    let xxh2 : __m256i = _mm256_set1_epi32(0x85EBCA77u32.cast_signed());
+    let xxh3 : __m256i = _mm256_set1_epi32(0xC2B2AE3Du32.cast_signed());
+    let xxh4 : __m256i = _mm256_set1_epi32(0x27D4EB2F);
+    let xxh5 : __m256i = _mm256_set1_epi32(0x165667B1);
+
+    let mut h : __m256i = _mm256_set1_epi32(seed.cast_signed());
+    let mut k : __m256i = _mm256_loadu_si256(a.as_ptr() as *const __m256i);
+
+    h = _mm256_add_epi32(h, xxh5);
+    // Process 4
+    k = _mm256_mullo_epi32(k, xxh3);
+    h = _mm256_add_epi32(h, k);
+    h = _mm256_or_si256(_mm256_slli_epi32::<17>(h), _mm256_srli_epi32::<{32 - 17}>(h));
+    h = _mm256_mullo_epi32(h, xxh4);
+
+    //avalanche
+    h = _mm256_xor_si256(h, _mm256_srli_epi32::<15>(h));
+    h = _mm256_mullo_epi32(h, xxh2);
+    h = _mm256_xor_si256(h, _mm256_srli_epi32::<13>(h));
+    h = _mm256_mullo_epi32(h, xxh3);
+    h = _mm256_xor_si256(h, _mm256_srli_epi32::<16>(h));
+
+    std::mem::transmute(h)
+}}

@@ -1148,6 +1148,7 @@ impl<
     }
 
 
+    /*
     #[target_feature(enable = "avx2")]
     pub unsafe fn index_simd64<'a>(
         &'a self,
@@ -1191,6 +1192,7 @@ impl<
         // NO: consume one item from the lane
         xs.into_iter().map(|_| 0)
     }
+    */
 
     #[target_feature(enable = "avx2")]
     pub unsafe fn index_simd32<'a>(
