@@ -46,21 +46,13 @@ impl<
         let parts_done = AtomicUsize::new(shard * self.parts_per_shard);
         let stats = Mutex::new(BucketStats::new());
 
+        //FIXME: All hashed keys end up in the same bucket (I think)
         let ok = iter.try_for_each(|(part_in_shard, (pilots, taken))| {
             let part = shard * self.parts_per_shard + part_in_shard;
             let hashes = &hashes
                 [part_starts[part_in_shard] as usize..part_starts[part_in_shard + 1] as usize];
             let _cnt = self.build_part(part, hashes, pilots, taken, &stats)?;
             let _parts_done = parts_done.fetch_add(1, Ordering::Relaxed);
-            // total_evictions.fetch_add(cnt, Ordering::Relaxed);
-
-            // if self.params.print_stats {
-            //     eprint!(
-            //         "parts done: {parts_done:>6}/{:>6} ({:>4.1}%)\r",
-            //         self.parts,
-            //         100. * parts_done as f32 / self.parts as f32
-            //     );
-            // }
 
             Some(())
         });
@@ -73,26 +65,6 @@ impl<
             parts_done.load(Ordering::Relaxed),
             (shard + 1) * self.parts_per_shard
         );
-
-        // let total_evictions: usize = total_evictions.load(Ordering::Relaxed);
-        // let sum_pilots = pilots.iter().map(|&k| k as Pilot).sum::<Pilot>();
-
-        // // Clear the last \r line.
-        // if self.params.print_stats {
-        //     eprint!("\x1b[K");
-        //     eprintln!(
-        //         "  displ./bkt: {:>14.3}",
-        //         total_evictions as f32 / (self.buckets * self.parts_per_shard) as f32
-        //     );
-        //     eprintln!(
-        //         "   avg pilot: {:>14.3}",
-        //         sum_pilots as f32 / (self.buckets * self.parts_per_shard) as f32
-        //     );
-        // }
-
-        // if self.params.print_stats {
-        //     stats.lock().unwrap().print();
-        // }
 
         Some(stats.into_inner().unwrap())
     }

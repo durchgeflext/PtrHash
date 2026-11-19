@@ -6,7 +6,7 @@
 use std::hint::black_box;
 
 use super::*;
-use crate::util::generate_keys;
+use crate::util::generate_keys64;
 
 /// Construct the MPHF and test all keys are mapped to unique indices.
 #[test]
@@ -20,7 +20,7 @@ fn construct_random() {
 
     for n in (0..10).chain(ns) {
         eprintln!("RANDOM Testing n = {}", n);
-        let keys = generate_keys(n);
+        let keys = generate_keys64(n);
         let ptr_hash = DefaultPtrHash::<FastIntHash, _>::new(&keys, PtrHashParams::default_fast());
         let mut done = bitvec![0; n];
         for key in &keys {
@@ -53,7 +53,7 @@ fn test_1e9() {
     env_logger::init();
     let n = 1_000_000_000;
     eprintln!("RANDOM Testing n = {}", n);
-    let keys = generate_keys(n);
+    let keys = generate_keys64(n);
 
     let ptr_hash = DefaultPtrHash::<FastIntHash, _>::new(&keys, PtrHashParams::default_fast());
     let mut done = bitvec![0; n];
@@ -152,7 +152,7 @@ fn construct_multiples() {
 #[test]
 fn index_stream() {
     for n in [2, 10, 100, 1000, 10_000, 100_000, 1_000_000] {
-        let keys = generate_keys(n);
+        let keys = generate_keys64(n);
         let ptr_hash = <DefaultPtrHash>::new(&keys, Default::default());
         let sum = ptr_hash.index_stream::<32, _>(&keys).sum::<usize>();
         assert_eq!(sum, (n * (n - 1)) / 2, "Failure for n = {n}");
@@ -164,7 +164,7 @@ fn index_stream() {
 fn index_batch() {
     for n in [10usize, 100, 1000, 10_000, 100_000, 1_000_000] {
         let n = n.next_multiple_of(32);
-        let keys = generate_keys(n);
+        let keys = generate_keys64(n);
         let ptr_hash = <PtrHash>::new(&keys, Default::default());
         let sum = ptr_hash.index_batch_exact::<32>(&keys).sum::<usize>();
         assert_eq!(sum, (n * (n - 1)) / 2);
@@ -175,7 +175,7 @@ fn index_batch() {
 #[test]
 fn new_par_iter() {
     let n = 100_000;
-    let keys = generate_keys(n);
+    let keys = generate_keys64(n);
     <PtrHash>::new_from_par_iter(n, keys.par_iter(), Default::default());
 }
 
@@ -374,7 +374,7 @@ fn string_key_types() {
 #[test]
 fn single_part() {
     let n = 1_000_000;
-    let keys = util::generate_keys(n);
+    let keys = util::generate_keys64(n);
 
     let params = PtrHashParams::default();
 
@@ -420,7 +420,7 @@ fn epserde_cacheline_ef_round_trip() {
     type CachelineEfPtrHash =
         PtrHash<u64, bucket_fn::Linear, CachelineEfVec, hash::Xxh3Int, Vec<u8>>;
 
-    let keys = generate_keys(100);
+    let keys = generate_keys64(100);
     let mphf = CachelineEfPtrHash::new(&keys, PtrHashParams::default());
     let mut file = tempfile::tempfile().unwrap();
 

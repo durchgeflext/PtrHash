@@ -16,7 +16,7 @@ fn main() {
     // Generate some random keys.
     let n = 10_000_000;
     eprintln!("Generating keys..");
-    let keys = ptr_hash::util::generate_keys(n);
+    let keys = ptr_hash::util::generate_keys64(n);
 
     // Build the datastructure.
     eprintln!("Building mphf..");

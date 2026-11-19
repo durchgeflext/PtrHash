@@ -7,7 +7,7 @@ use ptr_hash::{
     PtrHash, PtrHashParams,
     hash::{FastIntHash, KeyHasher},
     pack::MutPacked,
-    util::generate_keys,
+    util::generate_keys64,
 };
 use std::hint::black_box;
 
@@ -59,7 +59,7 @@ fn bench<
 fn main() {
     env_logger::init();
     let n = 1_000_000_000;
-    let keys = generate_keys(n);
+    let keys = generate_keys64(n);
     bench::<ptr_hash::bucket_fn::Linear, FastIntHash, Vec<u32>, true, false>(
         &keys,
         "FastPtrHash<FxHash>",

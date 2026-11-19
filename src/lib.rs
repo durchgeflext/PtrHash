@@ -21,7 +21,7 @@
 //!
 //! // Generate some random keys.
 //! let n = 1_000_000;
-//! let keys = ptr_hash::util::generate_keys(n);
+//! let keys = ptr_hash::util::generate_keys64(n);
 //!
 //! // Build the default variant of the datastructure.
 //! // See `FastPtrHash` and `CompactPtrHash` below as alternatives.
@@ -672,6 +672,7 @@ impl<
             for (shard, (hashes, pilots, taken)) in
                 izip!(shard_hashes, shard_pilots, shard_taken).enumerate()
             {
+                //FIXME: All keys end up in the same bucket, I think
                 // Determine the buckets.
                 let start = Timer::start();
                 let Some((hashes, part_starts)) = self.sort_parts(shard, hashes) else {
@@ -754,10 +755,6 @@ impl<
         Ok(())
     }
 }
-
-//FIXME: This should be somewhere sensible
-trait Lane64 {}
-impl Lane64 for u64 {}
 
 /// Indexing methods.
 impl<

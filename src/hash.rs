@@ -238,19 +238,19 @@ impl KeyHasher<u32> for Murmur32 {
         let mut h1 : u32 = seed as u32;
 
         let mut k1 = *x;
-        k1 *= C1;
+        k1 = k1.wrapping_mul(C1);
         k1 = rotl32(k1, 15);
-        k1 *= C2;
+        k1 = k1.wrapping_mul(C2);
 
         h1 ^= k1;
         h1 = rotl32(h1, 13);
-        h1 = h1 * 5 + C3;
+        h1 = h1.wrapping_mul(5).wrapping_add(C3);
 
         //finalization, fmix32
         h1 ^= h1 >> 16;
-        h1 *= C4;
+        h1 = h1.wrapping_mul(C4);
         h1 ^= h1 >> 13;
-        h1 *= C5;
+        h1 = h1.wrapping_mul(C5);
         h1 ^= h1 >> 16;
 
         h1 as u64
@@ -273,13 +273,13 @@ impl KeyHasher<u32> for XxHash32 {
         //finalize (h32, input : *char, 4, XXH_aligned)
 
         //Process4 ONCE
-        h32 += *a * XXH_3;
-        h32 = rotl32(h32, 17) * XXH_4;
+        h32 = h32.wrapping_add((*a).wrapping_mul(XXH_3));
+        h32 = rotl32(h32, 17).wrapping_mul(XXH_4);
         //XXH32_avalanche (h32)
         h32 ^= h32 >> 15;
-        h32 *= XXH_2;
+        h32 = h32.wrapping_mul(XXH_2);
         h32 ^= h32 >> 13;
-        h32 *= XXH_3;
+        h32 = h32.wrapping_mul(XXH_3);
 
         (h32 ^ (h32 >> 16)) as u64
     }
@@ -308,6 +308,7 @@ pub unsafe fn simd_murmur_32(a : &[u32; 8], seed: u32) -> [u32; 8] { unsafe {
     let mut h1 : __m256i = _mm256_set1_epi32(seed.cast_signed());
 
     //TODO: Check if multiplication breaks because of the signed integers inside __m256i
+    //TODO: Does rust also break when multiplication overflows?
     k1 = _mm256_mullo_epi32(k1, c1);
     k1 = _mm256_or_si256(_mm256_slli_epi32::<15>(k1), _mm256_srli_epi32::<{ 32 - 15 }>(k1));
     k1 = _mm256_mullo_epi32(k1, c2);

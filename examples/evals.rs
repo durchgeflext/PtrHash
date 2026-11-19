@@ -10,7 +10,7 @@ use ptr_hash::{
     },
     pack::{EliasFano, MutPacked},
     stats::BucketStats,
-    util::{generate_keys, generate_string_keys},
+    util::{generate_keys64, generate_string_keys},
 };
 use rand::{Rng, RngExt, rng};
 use rayon::iter::IntoParallelIterator;
@@ -133,7 +133,7 @@ struct QueryResult {
 fn bucket_fn_stats() {
     type MyPtrHash<BF> = PtrHash<u64, BF, CachelineEfVec, StrongerIntHash, Vec<u8>>;
     let n = 1_000_000_000;
-    let keys = &generate_keys(n);
+    let keys = &generate_keys64(n);
 
     fn build(keys: &Vec<u64>, lambda: f64, bucket_fn: impl BucketFn) -> BucketStats {
         let default = PtrHashParams::default_compact();
@@ -223,7 +223,7 @@ fn size() {
 
     let n = LARGE_N;
     let mut results = vec![];
-    let keys = &generate_keys(n);
+    let keys = &generate_keys64(n);
     for alpha in [0.98, 0.99, 0.995, 0.998] {
         for lambda in 27..45 {
             let lambda = lambda as f64 / 10.;
@@ -252,7 +252,7 @@ fn size() {
 /// Construction memory for compact params.
 fn construction_memory() {
     let n = 1_000_000_000;
-    let keys = &generate_keys(n);
+    let keys = &generate_keys64(n);
 
     type MyPtrHash = PtrHash<u64, CubicEps, CachelineEfVec, StrongerIntHash, Vec<u8>, false, true>;
 
@@ -355,7 +355,7 @@ fn remap() {
 
     let n = 1_000_000_000;
     let mut results = vec![];
-    let keys = &generate_keys(n);
+    let keys = &generate_keys64(n);
 
     // SIMPLE
     {
@@ -544,7 +544,7 @@ fn query_batching() {
 
     let mut results = vec![];
     for n in [SMALL_N] {
-        let keys = &generate_keys(n);
+        let keys = &generate_keys64(n);
 
         test(keys, PARAMS_FAST, &mut results);
         // test(keys, PARAMS_DEFAULT, &mut results); // Identical to compact
@@ -715,7 +715,7 @@ fn query_throughput() {
 
     let mut results = vec![];
     for n in [SMALL_N, LARGE_N] {
-        let keys = &generate_keys(n);
+        let keys = &generate_keys64(n);
 
         test::<Vec<u32>>(keys, PARAMS_FAST, &mut results);
         // test::<CachelineEfVec>(keys, PARAMS_DEFAULT, &mut results); // Identical to compact
@@ -808,7 +808,7 @@ fn string_queries() {
 
         // INT
         {
-            let keys: Vec<u64> = generate_keys(n);
+            let keys: Vec<u64> = generate_keys64(n);
 
             test::<R, _, NoHash>(&keys, PARAMS_FAST, &mut results);
             test::<R, _, StrongerIntHash>(&keys, PARAMS_FAST, &mut results);
@@ -822,7 +822,7 @@ fn string_queries() {
 
         // BOXED INT
         {
-            let keys: Vec<Box<u64>> = generate_keys(n).into_iter().map(|k| Box::new(k)).collect();
+            let keys: Vec<Box<u64>> = generate_keys64(n).into_iter().map(|k| Box::new(k)).collect();
 
             test::<R, _, FastIntHash>(&keys, PARAMS_FAST, &mut results);
             test::<R, _, StringHash>(&keys, PARAMS_FAST, &mut results);

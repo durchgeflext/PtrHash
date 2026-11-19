@@ -47,7 +47,44 @@ pub(crate) fn log_duration(name: &str, start: Timer) -> Timer {
     Timer::start()
 }
 
-pub fn generate_keys(n: usize) -> Vec<u64> {
+pub fn generate_keys64(n: usize) -> Vec<u64> {
+    // TODO: Deterministic key generation.
+    let start = Timer::start();
+    let keys = loop {
+        let start = Timer::start();
+        #[cfg(feature = "rayon")]
+        let keys: Vec<_> = (0..n)
+            .into_par_iter()
+            .map_init(rng, |rng, _| rng.random())
+            .collect();
+        #[cfg(not(feature = "rayon"))]
+        let keys: Vec<_> = {
+            let mut rng = rng();
+            (0..n).map(|_| rng.random()).collect()
+        };
+        let start = log_duration("┌   gen keys", start);
+        #[cfg(feature = "rayon")]
+        let mut keys2: Vec<_> = keys.par_iter().copied().collect();
+        #[cfg(not(feature = "rayon"))]
+        let mut keys2 = keys.clone();
+        let start = log_duration("├      clone", start);
+        keys2.radix_sort_unstable();
+        let start = log_duration("├       sort", start);
+        #[cfg(feature = "rayon")]
+        let distinct = keys2.par_windows(2).all(|w| w[0] < w[1]);
+        #[cfg(not(feature = "rayon"))]
+        let distinct = keys2.windows(2).all(|w| w[0] < w[1]);
+        log_duration("├ duplicates", start);
+        if distinct {
+            break keys;
+        }
+        warn!("DUPLICATE KEYS GENERATED");
+    };
+    log_duration("generatekeys", start);
+    keys
+}
+
+pub fn generate_keys32(n: usize) -> Vec<u32> {
     // TODO: Deterministic key generation.
     let start = Timer::start();
     let keys = loop {
