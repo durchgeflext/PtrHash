@@ -9,6 +9,7 @@
 //!                Does a `u128` multiplication, and xors the high and low word together, like xxh3. Then does one more multiplication. Not very scientific but 'it works'.
 //! - [`GxInt`]: GxHash, but with the type 'inlined' so that it optimized better.
 //! - [`Xxh3Int`]: Xxh3, but with the type 'inlined' so that it optimized better.
+//! - [`Murmur32`] and [`XxHash32`]: 32-bit hash functions for `u32` keys only.
 //!
 //! In practice, prefer [`FastIntHash`] if it's good enough.
 //! Otherwise, fall back to [`StrongerIntHash`].
@@ -169,6 +170,16 @@ pub struct Xxh3Int;
 #[derive(Clone)]
 pub struct GxInt;
 
+/// MurmurHash3 32-bit hashing for `u32` keys.
+#[cfg_attr(feature = "epserde", derive(epserde::prelude::Epserde))]
+#[derive(Clone)]
+pub struct Murmur32;
+
+/// xxHash32 hashing for `u32` keys.
+#[cfg_attr(feature = "epserde", derive(epserde::prelude::Epserde))]
+#[derive(Clone)]
+pub struct XxHash32;
+
 // Macro to implement hashes for all integer types.
 macro_rules! int_hashers {
     ($($t:ty),*) => {
@@ -213,6 +224,67 @@ macro_rules! int_hashers {
 }
 int_hashers!(u8, u16, u32, u64, usize, i8, i16, i32, i64, isize);
 
+impl KeyHasher<u32> for Murmur32 {
+    type H = u64;
+
+    //https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
+    #[inline(always)]
+    fn hash(x: &u32, seed: u64) -> u64 {
+        const C1 : u32= 0xcc9e2d51;
+        const C2 : u32 = 0x1b873593;
+        const C3 : u32 = 0xe6546b64;
+        const C4 : u32 = 0x85ebca6b;
+        const C5 : u32 = 0xc2b2ae35;
+        let mut h1 : u32 = seed as u32;
+
+        let mut k1 = *x;
+        k1 *= C1;
+        k1 = rotl32(k1, 15);
+        k1 *= C2;
+
+        h1 ^= k1;
+        h1 = rotl32(h1, 13);
+        h1 = h1 * 5 + C3;
+
+        //finalization, fmix32
+        h1 ^= h1 >> 16;
+        h1 *= C4;
+        h1 ^= h1 >> 13;
+        h1 *= C5;
+        h1 ^= h1 >> 16;
+
+        h1 as u64
+    }
+}
+
+impl KeyHasher<u32> for XxHash32 {
+    type H = u64;
+
+    //https://github.com/Cyan4973/xxHash/blob/dev/lib/xxh32_impl.h
+    #[inline(always)]
+    fn hash(a: &u32, seed: u64) -> u64 {
+        //xxhash_32(*x, seed as u32) as u64
+        const XXH_2 : u32 = 0x85EBCA77u32;
+        const XXH_3 : u32 = 0xC2B2AE3Du32;
+        const XXH_4 : u32 = 0x27D4EB2Fu32;
+        const XXH_5 : u32 = 0x165667B1u32;
+
+        let mut h32 : u32 = seed as u32 + XXH_5;
+        //finalize (h32, input : *char, 4, XXH_aligned)
+
+        //Process4 ONCE
+        h32 += *a * XXH_3;
+        h32 = rotl32(h32, 17) * XXH_4;
+        //XXH32_avalanche (h32)
+        h32 ^= h32 >> 15;
+        h32 *= XXH_2;
+        h32 ^= h32 >> 13;
+        h32 *= XXH_3;
+
+        (h32 ^ (h32 >> 16)) as u64
+    }
+}
+
 #[inline]
 pub fn rotl32(word : u32, shift: u32) -> u32 {
     (word << shift) | (word >> (32 - shift))
@@ -221,35 +293,6 @@ pub fn rotl32(word : u32, shift: u32) -> u32 {
 #[inline]
 pub fn rotr32(word : u32, shift: u32) -> u32 {
     (word >> shift) | (word << (32 - shift))
-}
-
-//https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
-#[inline]
-pub fn murmur_32(a : u32, seed : u32) -> u32 {
-    const C1 : u32= 0xcc9e2d51;
-    const C2 : u32 = 0x1b873593;
-    const C3 : u32 = 0xe6546b64;
-    const C4 : u32 = 0x85ebca6b;
-    const C5 : u32 = 0xc2b2ae35;
-    let mut h1 : u32 = seed;
-
-    let mut k1 = a;
-    k1 *= C1;
-    k1 = rotl32(k1, 15);
-    k1 *= C2;
-
-    h1 ^= k1;
-    h1 = rotl32(h1, 13);
-    h1 = h1 * 5 + C3;
-
-    //finalization, fmix32
-    h1 ^= h1 >> 16;
-    h1 *= C4;
-    h1 ^= h1 >> 13;
-    h1 *= C5;
-    h1 ^= h1 >> 16;
-
-    h1
 }
 #[inline]
 #[target_feature(enable = "avx2")]
@@ -282,29 +325,6 @@ pub unsafe fn simd_murmur_32(a : &[u32; 8], seed: u32) -> [u32; 8] { unsafe {
 
     std::mem::transmute(h1)
 }}
-
-//https://github.com/Cyan4973/xxHash/blob/dev/lib/xxh32_impl.h
-#[inline]
-pub fn xxhash_32(a : u32, seed : u32) -> u32 {
-    const XXH_2 : u32 = 0x85EBCA77u32;
-    const XXH_3 : u32 = 0xC2B2AE3Du32;
-    const XXH_4 : u32 = 0x27D4EB2Fu32;
-    const XXH_5 : u32 = 0x165667B1u32;
-
-    let mut h32 : u32 = seed + XXH_5;
-    //finalize (h32, input : *char, 4, XXH_aligned)
-
-    //Process4 ONCE
-    h32 += a * XXH_3;
-    h32 = rotl32(h32, 17) * XXH_4;
-    //XXH32_avalanche (h32)
-    h32 ^= h32 >> 15;
-    h32 *= XXH_2;
-    h32 ^= h32 >> 13;
-    h32 *= XXH_3;
-
-    h32 ^ (h32 >> 16)
-}
 
 #[inline]
 #[target_feature(enable = "avx2")]
