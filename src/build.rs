@@ -51,6 +51,7 @@ impl<
             let part = shard * self.parts_per_shard + part_in_shard;
             let hashes = &hashes
                 [part_starts[part_in_shard] as usize..part_starts[part_in_shard + 1] as usize];
+            //FIXME: Seems to be all okay until here
             let _cnt = self.build_part(part, hashes, pilots, taken, &stats)?;
             let _parts_done = parts_done.fetch_add(1, Ordering::Relaxed);
 
